@@ -1,0 +1,733 @@
+#################################################################
+# File:Continental extension                                    #
+# Patrice F Rey, Sept 2014                                      #
+# 3 contrasted Composition layer (Upper Crust-Lower Crust-Mantle#
+# with brittle-ductile transition                               #
+#                                                               #
+#                                                               #
+#################################################################
+
+__________________________________________________________________________________
+__________________________________________________________________________________
+
+## GEOMETRY, DIMENSIONS, GRID & PARTICLE ##
+__________________________________________________________________________________
+__________________________________________________________________________________
+
+	Geometry=cart2d			# problem geometry
+							# cart2d/cart2pt5d/cart3d = cartesian 2/2.5/3 dimensions
+							# axi=axisymmetric, cylinder=cylindrical, sphere=spherical
+							# For the Cosserat case you just add the four letters 'coss' after the keyword                       
+							# In that case you MUST specify at least one Rotation BC, because of the lack of body force
+
+# Grid dimensions
+	dimenx=40000	# grid extents in arbitrary units (this is in meter)
+	dimenz=40000
+ 	dimeny=1.0
+	
+# Mesh and multigrids
+	Solver=multigrid		# multigrid or (later, conjugate gradient)	
+	mgunitx=2				# (coarsest) multigrid cell dimensions (elements)
+	mgunitz=2				# (mgunitx/y/z default=min=2)
+	levels=5				# number of multigrid levels (default=1)
+	pmg_levels=4			# number of pressure multigrid levels (default=1)
+							# p_levmin (used in multigrid) = levels - pmg_levels (>=1)				
+					
+# The number of pressure levels should be smaller than the total available, essentially 
+# because the interpolation order is one lower than for velocity. The exact details are 
+# usually not that important. The CPU-time advantages of this method are only significant 
+# when solving non-linear rheologies since this allows the estimation of approximate 
+# viscosity to be made on a coarse mesh and refined in tandem with the accuracy 
+# of the velocity solution as the grid is made finer.
+					
+# Grid compression
+	Spacing_z=region		# "file" or specified "region" (default=region)
+	regions_z=0			# number of regions of different compression (default=0)
+	region_offset_z=35000		# center of compression range
+	region_compression_z=0.75	# relative compression (0<compr<1)
+	region_width_z=20000		# (half)width of compressed range
+	region_edge_width_z=0.0		# transition smoothing length
+
+	
+# Tracer (particles)			
+	Tracer_rect=1			# number of rectangular regions of different tracer densities (default=0)
+	Tracer_rect_density=8		# tracer density (N x N per finest element) (<=12)
+	Tracer_rect_x1=0.0000			# coordinate extent of region
+	Tracer_rect_x2=40000       #RAA-why did this used to be 4,4 ??
+	Tracer_rect_z1=0.0000
+	Tracer_rect_z2=40000	
+__________________________________________________________________________________
+__________________________________________________________________________________
+
+## MODEL GEOMETRY ##
+__________________________________________________________________________________
+__________________________________________________________________________________
+
+# Compositional constitution:
+# Any combination of rectangular, triangular, and circular regions may
+# be specified. Initial conditions are specified as follows:
+#	class_shape_subclass=value
+#     where class is one of Material, Temp, Strain
+#	shape is rect, circ, trgl
+#	subclass is e.g. mag(nitude),x1(coordinate), or sometimes empty
+#	value is a (comma-delimited list of) numerical assignment(s)
+# NOTE: Tracer regions are as yet only 2D.
+
+# Material distributions
+	Material_rect=1                                                  # number of rectangular regions with different tracer properties (default=0)
+	Material_rect_property=0			                             # tracer group name (properties/colour)
+	Material_rect_x1=0.0000											 # coordinates of tracer regions
+	Material_rect_x2=40000											 # (successively overwritten if rectangles overlap)
+	Material_rect_z1=0.0000
+	Material_rect_z2=40000 
+	
+	Material_trgl=0        
+	Material_trgl_vert=3,3,3,3
+	Material_trgl_property=5,5                                      # tracer group name (properties/colour)
+	Material_trgl_x1=160000,160000                                  # coordinates of tracer regions
+	Material_trgl_z1=15000.,15000.
+	Material_trgl_x2=182500,163750                                  # (successively overwritten if rectangles overlap)
+	Material_trgl_z2=37500.,15000.
+	Material_trgl_x3=186250,186250                                  # (successively overwritten if rectangles overlap)
+	Material_trgl_z3=37500.,37500.
+	
+    Material_circ=1
+    Material_circ_property=1			
+    Material_circ_x1=20000		
+	Material_circ_z1=40000
+    Material_circ_rad=10000  
+	
+# Embedded temperature anomalies
+	Temp_rect=0                                                     # Number of rectangular temperature regions (default=0)
+	Temp_rect_x1=0.0000                                             # coordinates of region
+	Temp_rect_x2=360000
+	Temp_rect_z1=0.0000
+	Temp_rect_z2=15000.
+	Temp_rect_hw=0.000.                                             # half-width of smoothed edge
+	Temp_rect_mag=293.0                                             # magnitude of initial condition
+	Temp_rect_ovl=R                                                 # A/M/R = add/multiply/replace overlaps
+                                                                    # (in increasing coord direction)
+							
+																				
+	Temp_circ=0						# Number of rectangular temperature regions (default=0)
+	Temp_circ_x=					# coordinates of region
+	Temp_circ_z=
+	Temp_circ_rad=
+	Temp_circ_hw=					# half-width of smoothed edge
+	Temp_circ_mag=					# magnitude of initial condition
+	Temp_circ_ovl=		            # A/M/R = add/multiply/replace overlaps
+                                    # (in increasing coord direction)
+
+
+
+__________________________________________________________________________________
+__________________________________________________________________________________
+
+##  STEADY STATES AND BOUNDARY CONDITIONS ##
+__________________________________________________________________________________
+__________________________________________________________________________________
+
+# Initial conditions files (previous_temperature_file)
+	previous_temperature_file="AAMN-900.node_data"
+
+
+# Gravity, sea level, erosion & sedimentation
+	gravacc=9.81		# gravitational acceleration (default=9.81)
+	gravtheta=0.0		# counterclockwise degree angle between gravity vector and z axis (default=0.0)
+
+# Initial thermal conditions (overwritten if previous_temperature_file is called, see next section)
+   toptbcval=293  
+   bottbcval=1073  # initial temperature gradient (defaults=0.0,1.0)
+
+
+# Boundary conditions are specified as follows:
+#	class_bc_shape_subclass=value
+#     where class is one of Temp, Stress_x/z/y, Velocity_x/z/y, Heat_flux_x/z/y, PoreP, Pore_flux_x/z/y
+#	bc indicates a boundary condition
+#	shape is rect, circ, harm(onic), poly(nomial), interface
+#	subclass is e.g. mag(nitude),aa1(coordinate), or sometimes empty
+#	value is a (comma-delimited list of) numerical assignment(s)
+#     Default conditions are tangential stress=0 and normal velocity=0 for all boundaries,
+#     T=toptbcval on top and T=bottbcval on bottom, heat flux=0 on sides,
+#     pore fluid flux=0 for all boundaries.
+#     Note that Velocity, Temp, PoreP respectively override Stress, Heat_flux, and Pore_flux on
+#     coincident boundaries.
+
+	Temp_bc_rect=2						# number of rectangular bc ranges (surfaces) (default=0)
+	Temp_bc_rect_norm=Z,Z				# normal to plane of surface
+	Temp_bc_rect_icpt=0.00,40000		# normal-axis intercept of bc plane
+	Temp_bc_rect_aa1=0.000,0.000		# lateral coordinate extent in 1st dimension
+	Temp_bc_rect_aa2=40000,40000
+	Temp_bc_rect_hw=0.0000,0.000			# half-width of bc smoothing edge
+	Temp_bc_rect_mag=293.0,1073.	# magnitude of bc     
+
+    Heat_flux_z_bc_rect=0				# number of rectangular bc ranges (surfaces) (default=0)
+	Heat_flux_z_bc_rect_norm=Z			# normal to plane of surface
+	Heat_flux_z_bc_rect_icpt=1.2			# normal-axis intercept of bc plane
+	Heat_flux_z_bc_rect_aa1=0.0			# lateral coordinate extent in 1st dimension
+	Heat_flux_z_bc_rect_aa2=1.2
+	Heat_flux_z_bc_rect_hw=0.0			# half-width of bc smoothing edge
+	Heat_flux_z_bc_rect_mag=0.231048			# magnitude of bc (!!! pb when using proper scaled value 23)
+        
+	
+	Velocity_z_bc_rect=0		# number of rectangular bc ranges (surfaces) (default=0)
+	Velocity_z_bc_rect_norm=X	# normal to plane of surface
+	Velocity_z_bc_rect_icpt=2	# normal-axis intercept of bc plane
+	Velocity_z_bc_rect_aa1=0	# lateral coordinate extent in 1st dimension
+	Velocity_z_bc_rect_aa2=1
+	Velocity_z_bc_rect_hw=0.0	# half-width of bc smoothing edge
+	Velocity_z_bc_rect_mag=0.0	# magnitude of bc                                   
+
+# Stress int. and bcs	
+	Stress_x_bc_rect=0		# number of rectangular bc ranges (surfaces) (default=0)
+	Stress_x_bc_rect_norm=		# normal to plane of surface
+	Stress_x_bc_rect_icpt=		# normal-axis intercept of bc plane
+	Stress_x_bc_rect_aa1=		# lateral coordinate extent in 1st dimension
+	Stress_x_bc_rect_aa2=
+	Stress_x_bc_rect_hw=		# half-width of bc smoothing edge
+	Stress_x_bc_rect_mag=		# magnitude of bc
+	
+
+# Model margins		
+	periodicx=off		# wrap-around bc (2D only) (default=off)
+	periodic_rm_vx=off	# removes periodic bc up to a constant (default=off)
+	free_upper=on		# free upper surface (pseudo) (default=off)
+	free_lower=on		# free lower surface (pseudo) (default=off)
+	initial_isostasy=off	# set initial topography from stress-balance (default=off -> allows for erosion at the surface)
+
+__________________________________________________________________________________
+__________________________________________________________________________________
+# Moving grid BC
+ #  BCmoveX0v=-3.171e-10  	# Velocity Of Grid Origin Boundaries (Default=0.0)3.171e-10=>1cm/yr
+ #  BCmoveX1v=3.171e-10 
+__________________________________________________________________________________
+__________________________________________________________________________________
+
+__________________________________________________________________________________
+__________________________________________________________________________________
+
+## MATERIAL PROPERTIES ##
+__________________________________________________________________________________
+__________________________________________________________________________________
+
+
+# There must be at least one kind of material in the system and it will 
+# be material 0, other materials count upwards (material 0, material 1, ... ).
+# These properties are assigned to tracer groups according to
+#    Material_rect_property=0,1,2,... etc.
+
+	Different_materials=2  # Number of different materials listed
+
+__________________________________________________________________________________
+## Crust
+	Material_0_reproduction=on	# allow tracer reproduction (default=on)
+	Material_0_density=2720		# density (default=1.0)
+	Material_0_Bulk_visc=-1	# bulk visc ratio at initial porosity ( >1.0(2D), >2/3(3D) )
+					# bulk visc = ratio*visc (default=-1.0=infinite)
+					# div(v) + p/(bulk_visc-2/3*visc) = 0
+	Material_0_Bulk_modulus=0.0	# B in dp = B*div(v)*dt (slightly compressible formulation)
+					# (default=0.0) where dp is on tracers (isotropic stress)
+
+# Rheological model
+ 	Material_0_rheol_T_type=1	# rheological temperature-dependence model (default=2)
+					# (1) visc=N0*exp(-T1*T)		(Frank-Kamenetski)
+					# (2) visc=N0*exp{ (E+Z*z)/(T1*(T+T0)) } (Arrhenius)
+					#     where z=depth
+ 	Material_0_viscN0=5.7e24		#81900		# N0 in viscosity models (default=1.0)1.35e7
+ 	Material_0_viscT1=0.011		#18.33	# T1 in viscosity models (default=1.0)12.39
+ 	Material_0_viscT0=0.0		# T0 in Arhennius viscosity model (default=0.0)
+ 	Material_0_viscZ=0.0		# Z in Arrhenius viscosity model (default=0.0)
+ 	Material_0_viscE=0.0		# E in Arrhenius viscosity model (default=0.0)
+ 	Material_0_viscTmax=1353	# maximum and minimum T to use in calculating viscosity
+ 	Material_0_viscTmin=521	# (default=1.e32,0.0)
+ 	Material_0_sdepv_expt=1.0	# exponent "s" in stress dependance of viscosity
+					# visc = edot^[(1-s)/s] * N0^(1/s) (default=1.0)    
+
+# Thermal parameters
+ 	Material_0_therm_exp=-5.4e-5	# thermal expansion coefficient (default=0.0)0.048
+ 	Material_0_therm_diff=9.48e-7		# thermal diffusivity (default=0.0)
+ 	Material_0_Cp=1000	# isobaric heat capacity (default=1.0)
+ 	Material_0_Qt=0	   		# internal heating rate by mass (default=0.0)
+
+	Material_0_melt_on=0		#Melt model, 1 turns melting on
+	Material_0_depl_T_type=2				#Depletion model, 1=pressure
+											#2=depth
+	Material_0_depl_exp=0.2				# 0.20 Density change of depleted material
+	Material_0_latent_heat=250			# 4.34e-15 Latent heat 350 to 450 kJ kg-1 K-1 - 2.08e-16
+	Material_0_melt_extract=1				# Melt fraction at which melt migrates
+	Material_0_depl_visc_change=10;			#Increase in viscosity of residue due to depletion 
+											# (visc = visc + depl*depl_vis_change)
+	Material_0_melt_total_visc_change=1000; 	#Decrease in viscosity due to presence of partial melt 
+											#(this is difference in viscosity at solidus and liquidus 
+											#- assumes linear decrease between start_visc_change & end_visc_change).
+	Material_0_Melt_frac_start_visc_change=0.20	#This is the melt fraction at which the viscosity starts to decrease
+	Material_0_Melt_frac_end_visc_change=0.30	#This is the melt fraction at which the viscosity stops decreasing (ie. as low as you go...).
+
+					# Use these if you want to use dimensional solidus-liquidus values
+					# Need when adiabat gradient is important
+					# Not so much for crustal melting, but might make life easier
+					# Note: only use for depletion model 2 ie. depth-dependent solidus
+					# Not for pressure....
+	Material_0_dim_d0=0		#Starting depth: depth(dimen) = d0 + d1*z(nondim)
+	Material_0_dim_d1=0		# d1 is above
+	Material_0_dim_T0=0		# Starting temp: T(dimen) = T0 + T1*T(nondim) + ag*depth(dimen)
+	Material_0_dim_T1=1		# ~ Potential temperature (if T0=0)
+	Material_0_dim_ag=0.0		# Adiabatic gradient, 0.3-0.5 for earth (deep-shallow resp).
+
+	Material_0_sp0=943		# Solidus of material, based on third order, 0.619
+	Material_0_sp1=0.002333		# polynomial fit of data:
+	Material_0_sp2=0.0		# s=sp0+sp1*p+sp2*p^2+sp3*p^3
+	Material_0_sp3=0.0
+
+	Material_0_lp0=1353		#Liquidus, defined same way
+	Material_0_lp1=0.002333
+	Material_0_lp2=0.0
+	Material_0_lp3=0.0 
+	    
+# Stress-strain relationship
+#    stress = visc * (strain rate)
+#    post-yield visc = (yield stress)/(strain rate)
+#    yield stress = max{ (B0 + Bz*z + Bp*p) * f(e,edot) , minimum yield stress }
+#    yield stress = min{ (B0 + Bz*z + Bp*p) * f(e,edot) , maximum yield stress }
+#    yield stress = yield stress * 0.001, if (-p) > Bc
+#    e=strain, z=depth, p=pressure
+#    f(e,edot) = decreasing power law for 0 < e < E0 and 0 < edot < Edot0
+#              = constant for e > E0 and edot > Edot0
+#    f(e,edot) = 1 - (1-Ea)*(e/E0)^En - (1-Edota)*(edot/Edot0)^Edotn
+
+# cf lois de mohr et de mohr-coulomb
+
+
+ 	Material_0_yield_stress_minimum=1.e-32	# minimum yield stress for plastic deformation (default=1.e-32)
+ 	Material_0_yield_stress_maximum=1.e32	# maximum yield stress for semi-brittle effect (default=1.e32)
+ 	Material_0_yield_stress_B0=6e7		# "cohesion" B0 in above eqn (default=1.e32)
+ 	Material_0_yield_stress_Bz=0.0		# "friction coefficient" Bz in above eqn (default=0.0)
+ 	Material_0_yield_stress_Bp=0.2		# "friction coefficient" Bp in above eqn (default=0.0)
+ 	Material_0_yield_stress_Bc=1.e32	# tension cutoff Bc in above law (default=1.e32)
+ 	Material_0_yield_stress_Ea=0.1		# ratio Ea = f(0,0)/f(E0,0) (default=1.0,range=[0,1])0
+ 	Material_0_yield_stress_E0=0.5  	# strain weakening E0 (default=1.e32)
+ 	Material_0_yield_stress_En=2		# exponent En in f(e), e<E0 (default=0.0)
+ 	Material_0_yield_stress_Edota=1.0	# ratio Edota = f(0,0)/f(0,Edot0) (default=1.0,range=[0,1])
+ 	Material_0_yield_stress_Edot0=0.0	# strain rate weakening Edot0 (default=0.0)
+ 	Material_0_yield_stress_Edotn=0.0	# exponent Edotn in f(e), edot<Edot0 (default=0.0)
+ 	Material_0_yield_stress_ET=1.e32	# T above which strain weakening is reset (default=1.e32)
+ 	Material_0_yield_stress_E0dt=0.0	# time rate of strain reduction (healing)
+						# de/dt = E0dt*e (default=0.0)    
+
+# Colouring
+	Material_0_Red=0.0,1.0,1.5			# RGB values for "cold" material (list one per PPM file)
+	Material_0_Green=0.6,1.0,0.0			# ("hot" and "cold" are determined from T extremes)
+	Material_0_Blue=1.0,1.0,0.0
+	Material_0_Opacity=1.4,1.4,1.4			# opacity for "cold" material (negative=off)
+	Material_0_Red_hot=1.0,0.0,1.0			# values for "hot" material
+	Material_0_Green_hot=0.0,1.0,1.0
+	Material_0_Blue_hot=0.0,0.0,0.0
+	Material_0_Opacity_hot=1.4,1.4,1.0
+	Material_0_Red_strained=0.10,0.52,0.6		# values for strained material
+	Material_0_Green_strained=0.17,0.9,0.0
+	Material_0_Blue_strained=0.57,1.5,1.0
+	Material_0_Opacity_strained=1.4,1.4,1.4    
+__________________________________________________________________________________
+
+
+## Magmas 
+	Material_1_reproduction=on	# allow tracer reproduction (default=on)
+        Material_1_phases=1		# number of unique phases (first phase is phase 0) (default=1)
+					# then visc = { sum(1/visc_n) }^(-1)
+ 	Material_1_T_block=-1.e32	# (blocking) T above which phase change can occur (default=-1.e32)
+ 	Material_1_rheol_cpts=1		# number of rheological components (at least one per phase) (default=1)
+					# then visc = { sum(1/visc_n) }^(-1)
+ 	Material_1_Trange_min=-1.e8	# temperature range to which rheology applies
+ 	Material_1_Trange_max=1.e8	# (default=-1.e8,1.e8)
+ 	Material_1_rheol_phase=0	# phase to which each rheology applies (start from 0) (default=0)
+ 	Material_1_density=2500		# density (default=1.0)
+ 	Material_1_porosity=0.0	# initial porosity (default=0.0)
+					# NB: initial porosity = 0 ensures that Bulk_visc is constant
+ 	Material_1_Bulk_visc=-1	# bulk visc ratio at initial porosity ( >1.0(2D), >2/3(3D) )
+					# bulk visc = ratio*visc (default=-1.0=infinite)
+					# div(v) + p/(bulk_visc-2/3*visc) = 0
+ 	Material_1_Bulk_modulus=0.0	# B in dp = B*div(v)*dt (slightly compressible formulation)
+					# (default=0.0) where dp is on tracers (isotropic stress)
+
+# Rheological model
+ 	Material_1_rheol_T_type=1	# rheological temperature-dependence model (default=2)
+					# (1) visc=N0*exp(-T1*T)		(Frank-Kamenetski)
+					# (2) visc=N0*exp{ (E+Z*z)/(T1*(T+T0)) } (Arrhenius)
+					#     where z=depth
+ 	Material_1_viscN0=5.7e24		#81900		# N0 in viscosity models (default=1.0)1.35e7
+ 	Material_1_viscT1=0.011		#18.33	# T1 in viscosity models (default=1.0)12.39
+ 	Material_1_viscT0=0.0		# T0 in Arhennius viscosity model (default=0.0)
+ 	Material_1_viscZ=0.0		# Z in Arrhenius viscosity model (default=0.0)
+ 	Material_1_viscE=0.0		# E in Arrhenius viscosity model (default=0.0)
+ 	Material_1_viscTmax=1353	# maximum and minimum T to use in calculating viscosity
+ 	Material_1_viscTmin=621	# (default=1.e32,0.0)
+ 	Material_1_sdepv_expt=1.0	# exponent "s" in stress dependance of viscosity
+					# visc = edot^[(1-s)/s] * N0^(1/s) (default=1.0)
+
+# Thermal parameters
+ 	Material_1_therm_exp=3e-5	# thermal expansion coefficient (default=0.0)0.048
+ 	Material_1_therm_diff=9.48e-5		# thermal diffusivity (default=0.0)
+ 	Material_1_Cp=1000	# isobaric heat capacity (default=1.0)
+ 	Material_1_Qt=0	   		# internal heating rate by mass (default=0.0)
+
+        
+	Material_1_melt_on=1		#Melt model, 1 turns melting on
+	Material_1_depl_T_type=1				#Depletion model, 1=pressure
+											#2=depth
+	Material_1_depl_exp=0.2				# 0.20 Density change of depleted material
+	Material_1_latent_heat=250			# 4.34e-15 Latent heat 350 to 450 kJ kg-1 K-1 - 2.08e-16
+	Material_1_melt_extract=1				# Melt fraction at which melt migrates
+	Material_1_depl_visc_change=10;			#Increase in viscosity of residue due to depletion 
+											# (visc = visc + depl*depl_vis_change)
+	Material_1_melt_total_visc_change=1000; 	#Decrease in viscosity due to presence of partial melt 
+											#(this is difference in viscosity at solidus and liquidus 
+											#- assumes linear decrease between start_visc_change & end_visc_change).
+	Material_1_Melt_frac_start_visc_change=0.20	#This is the melt fraction at which the viscosity starts to decrease
+	Material_1_Melt_frac_end_visc_change=0.30	#This is the melt fraction at which the viscosity stops decreasing (ie. as low as you go...).
+
+					# Use these if you want to use dimensional solidus-liquidus values
+					# Need when adiabat gradient is important
+					# Not so much for crustal melting, but might make life easier
+					# Note: only use for depletion model 2 ie. depth-dependent solidus
+					# Not for pressure....
+	Material_1_dim_d0=0			#Starting depth: depth(dimen) = d0 + d1*z(nondim)
+	Material_1_dim_d1=1			# d1 is above
+	Material_1_dim_T0=0		# Starting temp: T(dimen) = T0 + T1*T(nondim) + ag*depth(dimen) => T(dimen) = T0 + T1*T(nondim) + ag*(d0 + d1*z(nondim))
+	Material_1_dim_T1=1		# ~ Potential temperature (if T0=0)
+	Material_1_dim_ag=0	# Adiabatic gradient, 0.3-0.5 for earth (deep-shallow resp).
+
+	Material_1_sp0=773		# Solidus of material, based on third order, 0.619
+	Material_1_sp1=3.33e-7		# polynomial fit of data:
+	Material_1_sp2=0.0		# s=sp0+sp1*p+sp2*p^2+sp3*p^3
+	Material_1_sp3=0.0
+
+	Material_1_lp0=1073		#Liquidus, defined same way
+	Material_1_lp1=3.33e-7
+	Material_1_lp2=0.0
+	Material_1_lp3=0.0
+
+
+# Stress-strain relationship
+#    stress = visc * (strain rate)
+#    post-yield visc = (yield stress)/(strain rate)
+#    yield stress = max{ (B0 + Bz*z + Bp*p) * f(e,edot) , minimum yield stress }
+#    yield stress = min{ (B0 + Bz*z + Bp*p) * f(e,edot) , maximum yield stress }
+#    yield stress = yield stress * 0.001, if (-p) > Bc
+#    e=strain, z=depth, p=pressure
+#    f(e,edot) = decreasing power law for 0 < e < E0 and 0 < edot < Edot0
+#              = constant for e > E0 and edot > Edot0
+#    f(e,edot) = 1 - (1-Ea)*(e/E0)^En - (1-Edota)*(edot/Edot0)^Edotn
+
+ 	Material_1_yield_stress_minimum=1.e-32	# minimum yield stress for plastic deformation (default=1.e-32)
+ 	Material_1_yield_stress_maximum=1.e32	# maximum yield stress for semi-brittle effect (default=1.e32)
+ 	Material_1_yield_stress_B0=6e7		# "cohesion" B0 in above eqn (default=1.e32)
+ 	Material_1_yield_stress_Bz=0.0		# "friction coefficient" Bz in above eqn (default=0.0)
+ 	Material_1_yield_stress_Bp=0.2		# "friction coefficient" Bp in above eqn (default=0.0)
+ 	Material_1_yield_stress_Bc=1.e32	# tension cutoff Bc in above law (default=1.e32)
+ 	Material_1_yield_stress_Ea=0.1		# ratio Ea = f(0,0)/f(E0,0) (default=1.0,range=[0,1])0
+ 	Material_1_yield_stress_E0=0.5  	# strain weakening E0 (default=1.e32)
+ 	Material_1_yield_stress_En=2		# exponent En in f(e), e<E0 (default=0.0)
+ 	Material_1_yield_stress_Edota=1.0	# ratio Edota = f(0,0)/f(0,Edot0) (default=1.0,range=[0,1])
+ 	Material_1_yield_stress_Edot0=0.0	# strain rate weakening Edot0 (default=0.0)
+ 	Material_1_yield_stress_Edotn=0.0	# exponent Edotn in f(e), edot<Edot0 (default=0.0)
+ 	Material_1_yield_stress_ET=1.e32	# T above which strain weakening is reset (default=1.e32)
+ 	Material_1_yield_stress_E0dt=0.0	# time rate of strain reduction (healing)
+						# de/dt = E0dt*e (default=0.0)
+                                                
+# Colouring
+	Material_1_Red=1.0,1.1,0.5			# RGB values for "cold" material (list one per PPM file)
+	Material_1_Green=1.0,1.0,0.0			# ("hot" and "cold" are determined from T extremes)
+	Material_1_Blue=1.0,1.0,1.5
+	Material_1_Opacity=1.4,1.4,1.4			# opacity for "cold" material (negative=off)
+	Material_1_Red_hot=1.9,1.0,1.5			# values for "hot" material
+	Material_1_Green_hot=0.7,0.0,0.2
+	Material_1_Blue_hot=0.0,0.0,0.2
+	Material_1_Opacity_hot=1.4,1.4,1.0
+	Material_1_Red_strained=0.10,0.52,0.6		# values for strained material
+	Material_1_Green_strained=0.17,0.9,0.0
+	Material_1_Blue_strained=0.57,1.5,1.0
+	Material_1_Opacity_strained=1.4,1.4,1.4
+#	Material_1_Red_depl=1.00,1.00		# values for depleted material, if commented out Ellipsis will choose default values
+# 	Material_1_Green_depl=0.15,1.00
+# 	Material_1_Blue_depl=0.00,1.00
+# 	Material_1_Opacity_depl=1.4,1.4   
+__________________________________________________________________________________
+
+	## Air
+	Material_2_reproduction=on	# allow tracer reproduction (default=on)
+        Material_2_phases=1		# number of unique phases (first phase is phase 0) (default=1)
+					# then visc = { sum(1/visc_n) }^(-1)
+ 	Material_2_T_block=-1.e32	# (blocking) T above which phase change can occur (default=-1.e32)
+ 	Material_2_rheol_cpts=1		# number of rheological components (at least one per phase) (default=1)
+					# then visc = { sum(1/visc_n) }^(-1)
+ 	Material_2_Trange_min=-1.e8	# temperature range to which rheology applies
+ 	Material_2_Trange_max=1.e8	# (default=-1.e8,1.e8)
+ 	Material_2_rheol_phase=0	# phase to which each rheology applies (start from 0) (default=0)
+ 	Material_2_density=3	# density (default=1.0)
+ 	Material_2_porosity=0.0	# initial porosity (default=0.0)
+					# NB: initial porosity = 0 ensures that Bulk_visc is constant
+ 	Material_2_Bulk_visc=1	# bulk visc ratio at initial porosity ( >1.0(2D), >2/3(3D) )
+					# bulk visc = ratio*visc (default=-1.0=infinite)
+					# div(v) + p/(bulk_visc-2/3*visc) = 0
+ 	Material_2_Bulk_modulus=0.0	# B in dp = B*div(v)*dt (slightly compressible formulation)
+					# (default=0.0) where dp is on tracers (isotropic stress)
+
+# Rheological model
+ 	Material_2_rheol_T_type=1	# rheological temperature-dependence model (default=2)
+					# (1) visc=N0*exp(-T1*T)		(Frank-Kamenetski)
+					# (2) visc=N0*exp{ (E+Z*z)/(T1*(T+T0)) } (Arrhenius)
+					#     where z=depth
+ 	Material_2_viscN0=5.7e24		#81900		# N0 in viscosity models (default=1.0)1.35e7
+ 	Material_2_viscT1=0		#18.33	# T1 in viscosity models (default=1.0)12.39
+ 	Material_2_viscT0=0.0		# T0 in Arhennius viscosity model (default=0.0)
+ 	Material_2_viscZ=0.0		# Z in Arrhenius viscosity model (default=0.0)
+ 	Material_2_viscE=0.0		# E in Arrhenius viscosity model (default=0.0)
+ 	Material_2_viscTmax=1353	# maximum and minimum T to use in calculating viscosity
+ 	Material_2_viscTmin=621	# (default=1.e32,0.0)
+ 	Material_2_sdepv_expt=1.0	# exponent "s" in stress dependance of viscosity
+					# visc = edot^[(1-s)/s] * N0^(1/s) (default=1.0)
+
+# Thermal parameters
+ 	Material_2_therm_exp=-5.4e-5	# thermal expansion coefficient (default=0.0)0.048
+ 	Material_2_therm_diff=9.48e-7		# thermal diffusivity (default=0.0)
+ 	Material_2_Cp=1000	# isobaric heat capacity (default=1.0)
+ 	Material_2_Qt=0	   		# internal heating rate by mass (default=0.0)
+
+        
+	Material_2_melt_on=0		#Melt model, 1 turns melting on
+	Material_2_depl_T_type=2				#Depletion model, 1=pressure
+											#2=depth
+	Material_2_depl_exp=0.2				# 0.20 Density change of depleted material
+	Material_2_latent_heat=250			# 4.34e-15 Latent heat 350 to 450 kJ kg-1 K-1 - 2.08e-16
+	Material_2_melt_extract=1				# Melt fraction at which melt migrates
+	Material_2_depl_visc_change=10;			#Increase in viscosity of residue due to depletion 
+											# (visc = visc + depl*depl_vis_change)
+	Material_2_melt_total_visc_change=5.6943e24; 	#Decrease in viscosity due to presence of partial melt 
+											#(this is difference in viscosity at solidus and liquidus 
+											#- assumes linear decrease between start_visc_change & end_visc_change).
+	Material_2_Melt_frac_start_visc_change=0.20	#This is the melt fraction at which the viscosity starts to decrease
+	Material_2_Melt_frac_end_visc_change=0.30	#This is the melt fraction at which the viscosity stops decreasing (ie. as low as you go...).
+
+					# Use these if you want to use dimensional solidus-liquidus values
+					# Need when adiabat gradient is important
+					# Not so much for crustal melting, but might make life easier
+					# Note: only use for depletion model 2 ie. depth-dependent solidus
+					# Not for pressure....
+	Material_2_dim_d0=0		#Starting depth: depth(dimen) = d0 + d1*z(nondim)
+	Material_2_dim_d1=0		# d1 is above
+	Material_2_dim_T0=0		# Starting temp: T(dimen) = T0 + T1*T(nondim) + ag*depth(dimen)
+	Material_2_dim_T1=1		# ~ Potential temperature (if T0=0)
+	Material_2_dim_ag=0.0		# Adiabatic gradient, 0.3-0.5 for earth (deep-shallow resp).
+
+	Material_2_sp0=943		# Solidus of material, based on third order, 0.619
+	Material_2_sp1=0.002333		# polynomial fit of data:
+	Material_2_sp2=0.0		# s=sp0+sp1*p+sp2*p^2+sp3*p^3
+	Material_2_sp3=0.0
+
+	Material_2_lp0=1353		#Liquidus, defined same way
+	Material_2_lp1=0.002333
+	Material_2_lp2=0.0
+	Material_2_lp3=0.0
+
+
+# Stress-strain relationship
+#    stress = visc * (strain rate)
+#    post-yield visc = (yield stress)/(strain rate)
+#    yield stress = max{ (B0 + Bz*z + Bp*p) * f(e,edot) , minimum yield stress }
+#    yield stress = min{ (B0 + Bz*z + Bp*p) * f(e,edot) , maximum yield stress }
+#    yield stress = yield stress * 0.001, if (-p) > Bc
+#    e=strain, z=depth, p=pressure
+#    f(e,edot) = decreasing power law for 0 < e < E0 and 0 < edot < Edot0
+#              = constant for e > E0 and edot > Edot0
+#    f(e,edot) = 1 - (1-Ea)*(e/E0)^En - (1-Edota)*(edot/Edot0)^Edotn
+
+ 	Material_2_yield_stress_minimum=1.e-32	# minimum yield stress for plastic deformation (default=1.e-32)
+ 	Material_2_yield_stress_maximum=1.e32	# maximum yield stress for semi-brittle effect (default=1.e32)
+ 	Material_2_yield_stress_B0=1.e32		# "cohesion" B0 in above eqn (default=1.e32)
+ 	Material_2_yield_stress_Bz=0.0		# "friction coefficient" Bz in above eqn (default=0.0)
+ 	Material_2_yield_stress_Bp=0.2		# "friction coefficient" Bp in above eqn (default=0.0)
+ 	Material_2_yield_stress_Bc=1.e32	# tension cutoff Bc in above law (default=1.e32)
+ 	Material_2_yield_stress_Ea=0.1		# ratio Ea = f(0,0)/f(E0,0) (default=1.0,range=[0,1])0
+ 	Material_2_yield_stress_E0=0.5  	# strain weakening E0 (default=1.e32)
+ 	Material_2_yield_stress_En=2		# exponent En in f(e), e<E0 (default=0.0)
+ 	Material_2_yield_stress_Edota=1.0	# ratio Edota = f(0,0)/f(0,Edot0) (default=1.0,range=[0,1])
+ 	Material_2_yield_stress_Edot0=0.0	# strain rate weakening Edot0 (default=0.0)
+ 	Material_2_yield_stress_Edotn=0.0	# exponent Edotn in f(e), edot<Edot0 (default=0.0)
+ 	Material_2_yield_stress_ET=1.e32	# T above which strain weakening is reset (default=1.e32)
+ 	Material_2_yield_stress_E0dt=0.0	# time rate of strain reduction (healing)
+						# de/dt = E0dt*e (default=0.0)
+                                                
+# Colouring
+	Material_2_Red=0.0,0.0,1.5			# RGB values for "cold" material (list one per PPM file)
+	Material_2_Green=0.0,0.0,0.0			# ("hot" and "cold" are determined from T extremes)
+	Material_2_Blue=1.0,1.0,0.0
+	Material_2_Opacity=1.4,1.4,1.4			# opacity for "cold" material (negative=off)
+	Material_2_Red_hot=1.0,0.0,1.0			# values for "hot" material
+	Material_2_Green_hot=0.0,1.0,1.0
+	Material_2_Blue_hot=0.0,0.0,0.0
+	Material_2_Opacity_hot=1.4,1.4,1.0
+	Material_2_Red_strained=0.10,0.52,0.6		# values for strained material
+	Material_2_Green_strained=0.17,0.9,0.0
+	Material_2_Blue_strained=0.57,1.5,1.0
+	Material_2_Opacity_strained=1.4,1.4,1.4    
+	
+__________________________________________________________________________________
+__________________________________________________________________________________
+
+## OUTPUT REQUIREMENTS ##
+__________________________________________________________________________________
+__________________________________________________________________________________
+
+	# GENERAL
+
+	DESCRIBE=off		# describe search for parameters (default=off)
+	VERBOSE=off         # on the input values as they are read in (default=off)
+	BEGINNER=off		# verbose on missing input (if VERBOSE=on) (default=off)
+	verbose=off         # verbose behaviour for the code (debugging) (default=off)
+	see_convergence=0	# print progress of run for X timesteps (default=0=off)
+	
+	ADV=on              # time component - advection of tracers, advection-diffusion of heat (default=on)
+	minstep=1           # minimum number of adv-diff timesteps (default=1)
+	maxstep=600  		# maximum number of adv-diff time steps (default=1000)
+	maxtotstep=1000000	# maximum total adv-diff timesteps (default=1000000)
+	finetunedt=0.9		# multiplier for Courant timestep (default=0.9)
+	fixed_timestep=3.1536e12	# overridden if > calculated max (default=0.0=ignored)
+	maxadvtime=1.67e15		# maximum elapsed time (default=1.0e18=30 Byr)
+
+
+	# OUTPUT FILES
+
+	COMPRESS=off			# output files compressed upon creation (default=on)
+	datafile="Pluton100"	# root name of output files
+	datatypes="Temp,Pres"		# desired nodal output variables (ascii file)
+						# possible keywords for datatypes:
+						# Velx, Vely, Velz = x, y, z velocity
+						# PoVx, PoVz = x, z pore liquid velocity
+						# Pres, PorP = (nodal) solid pressure, pore pressure
+						# Temp = temperature, Comp = compression
+						# Strf = stream function (2D cartesian coords only)
+						# Pbdy = phase boundary
+	particle_data=""			# desired particle output variables (binary file)
+						# possible keywords for particle_data:
+						# Temp = temperature
+						# Pres, PorP = solid pressure, pore pressure
+						# Visc = viscosity
+						# Poro = porosity
+						# Edot = strain rate
+						# StrP, StrT = integrated plastic/total strain
+						# Grsz = grain size
+	averages=""				# horizontally averaged values for output (ascii)
+						# possible keywords for averages:
+						# Temp = temperature
+						# Visc = viscosity
+						# Poro = porosity
+						# Velo = magnitude of velocity
+						# Urms, Vrms, Wrms = rms of x, z, y velocities
+	timelog="Shfl"		# time record of large-scale averages (ascii)
+						# possible keywords for timelog:
+						# Nuss = Nusselt number
+						# Vrms, Vxrm, Vyrm, Vzrm = total and directional rms velocities
+						# Shfl, Bhfl = average surface and basal heat fluxes
+						# Svav, Bvav = surface and basal vrms
+	observables=""			# surface observables (slice at z=0/zmax) (ascii)
+						# possible keywords for observables:
+						# Shfl, Bhfl = surface and basal heat fluxes
+						# Vxsf, Vysf, Vzsf = surface velocities
+						# Tpgx, Tpbx = surface and basal topography
+						# Tpgk, Tpbk = surface and basal topography wavenumbers
+						# Grvx, Grbx, Grtx = surface, basal, and topographical gravity signals
+						# Grvk, Grbk, Grtk = wavenumbers of above
+						# Geox, Gebx, Getx = surface, basal, and topographical geoid (?)
+						# Geok, Gebk, Getk = wavenumbers of above
+
+	storage_timesteps=1		# data writing interval (based on average timestep) (default=50)
+	checkpt_timesteps=1		# PPM (graphics) file writing interval (default=10)
+	storage_timing=0.0		# absolute timestep data writing interval (default=0.0=ignore)
+	checkpt_timing=0.0		# absolute timestep PPM file writing interval (default=0.0=ignore)
+	process_command=""		# system command to process upon each output write
+ 
+# Specifications for graphical output files
+	PPM_files=2				# number of PPM files at each output step (default=1)
+						# first PPM file is *.ppm0, etc.
+	ppm_process_command=""		# system command to process upon each PPM write
+	PPM_height=256,256		# vertical size of output PPM file (default=256)
+	PPM_coloring=1,15			# variable upon which to base colouring
+						# possible choices for PPM_coloring: (default=1)
+						# 1=temperature, 2=weight, 3=stress=visc*edot(strd),
+						# 4=solid pressure, 5=grainsize, 6=compression,
+						# 7=strain rate, 8=accumulated strain
+						# 9=pore pressure, 10=permeability, 11=Chem_Trans, 12, 11=Chem_Trans_VolFraction, 12
+						#13=viscosity, 14=Depletion, 15=Melt
+	PPM_coloring_autorange=1,1,1	# automatically scale colour (default=1)
+	PPM_coloring_min=0.0,0.0,0.00	 	# min value for color scale (default=0.0)
+	PPM_coloring_max=1.0,1.0,1.00		# max value for color scale (default=1.0)
+	PPM_show_strain=0.5,0.35,0.35		# colour according to actual strength change (default=0.0)
+													# (as opposed to current strain rate) NB: if YIELD is on,
+													# one of these two is always shown, using "strained" colour.
+
+
+# for extracting profiles/histories
+	Sampling_tracers=11		# number of sampling tracers (default=0)
+	Sampling_lagrangian=1,1,1,1,1,1,1,1,1,1,1						# (fixed) Eulerian=0, Lagrangian=1 (default=0)
+	Sampling_plot_num=0,0,0,0,1,1,0,0,0,0,0,0						# PPM file in which profile is stored (default=0)
+	Sampling_x=18000,20000,20000,22000,20000,20000,20000,28000,28000,29000,29000		# initial x location (default=0.0)
+	Sampling_z=0.0,0.0,0.0,0.0,0.0,35000,35000,35000,35000,35000,35000		# initial z location (default=0.0)
+	Sampling_y=0.0,0.0,0.0,0.0,0.0,0,0,0,0,0,0		# initial z location (default=0.0)
+	Sampling_field=4,14,15,1,15,1,4,1,4,1,4			# field to sample (default=0)
+						# 1=temperature, 2=x velocity, 3=z velocity
+						# 4=nodal pressure, 5=strain rate, 6=stress=visc*edot 
+						# 14=depl, 15 = melt (13 =viscosity)
+	Sampling_dirn=2,2,2,2,2,2,2,2,2,2,2,2	# profile direction (1=x, 2=z, 3=y) (default=0)
+	Sampling_normalize=1,1,1,1,1,1,1,1,1,1,1,1	# 0=unnormalized, 1=normalized (default=0)
+#	Sampling_plot_min=0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0		# If not autoranging, then need a max/min for the scale
+#	Sampling_plot_max=1.e4,1.e4,1.e4,1e4,1e4,1e4,1e4,1e4,1e4,1.e4,1.e4,1.e4,1e4,1e4,1e4,1e4,1e4,1e4
+
+	Sampling_R=0.8,0.0,0.8,0.05,0.0,0.0,0.2,0.0,0.55,0.0,0.0		# RGB for profiles (default=0.0)
+	Sampling_G=0.0,0.0,0.8,1.00,0.0,1.0,0.0,0.4,1.00,0.7,1.0
+	Sampling_B=0.0,0.0,0.8,0.05,1.0,0.0,0.0,0.0,0.25,1.0,0.8  
+
+__________________________________________________________________________________
+__________________________________________________________________________________
+
+## OVER-RIDING TOGGLES ##
+__________________________________________________________________________________
+__________________________________________________________________________________
+
+	TDEPV=on		# use temperature-dependent rheological parameters (default=on)
+				# (off is faster than turning all viscosity values to 1)
+	VMAX=on			# use maximum viscosity (default=off)
+	VMIN=on			# use minimum viscosity (default=off)
+	visc_max=1e23		# maximum, minimum viscosity cut-offs (no defaults)
+	visc_min=1e17
+	SDEPV=off   		# use stress dependence of viscosity (default=off)
+	GRDEPV=off		# use grain size dependence of viscosity (default=off)
+	YIELD=off		# yield stress parameters on/off (default=off)  
+
+__________________________________________________________________________________
+__________________________________________________________________________________
+
+## VERY HARD STUFF ##
+__________________________________________________________________________________
+__________________________________________________________________________________
+
+
+# ADVECTION-DIFFUSION PARAMETERS
+	
+	ADV=on					# time component - advection of tracers, advection-diffusion of heat (default=on)
+	adv_sub_iterations=2	# number of iterations in predictor-corrector phase of Petrov-Galerkin advection scheme (default=2)
+	B_matrix=1				# method for computing the element stiffness matrix
+							# 0=general form, 1=hand-written 2D convection 2=hand-written 2D Cosserat 
+							# 3=hand-written 3D convection 4=hand-written 3D Cosserat (default=1)
+
+							
+# SOLVER RELATED MATTERS (NB: Defaults are sensible, exercise care in changing these)
+
+	mg_cycle=1					# style of multigrid cycle
+								# 1 = V cycle, 2 = W cycle, ... (default=1)
+	vel_relaxations=10			# maximum number of velocity loops (default=2)
+	piterations=100				# maximum Uzawa iteration loops (default=100)
+	viterations=20				# number of velocity iterations before checking convergence (default=251)
+	accuracy=1.e-4				# desired accuracy of Uzawa algorithm (default=1.e-4)
+	delta_accuracy_factor=1.0	# change in accuracy level->level (>~1 for nonN, <~1 for Newt)
+								# 0.001 < factor < 10.0 (default=0.2) explain??
+

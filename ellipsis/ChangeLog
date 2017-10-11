@@ -1,0 +1,43 @@
+2006-04-06 22:12  leif
+
+	* [r2676] Added subminor to version; added svn:keywords.
+
+2006-04-06 18:52  leif
+
+	* [r2675] Added standard GNU info files. "ChangeLog" generated
+	  with svn2cl (http://ch.tudelft.nl/~arthur/svn2cl/) using the
+	  following command: svn log --xml --verbose | xsltproc
+	  --stringparam strip-prefix mc/3D/ellipsis3d/trunk --stringparam
+	  include-rev yes svn2cl.xsl - > ChangeLog
+
+2006-04-06 18:15  leif
+
+	* [r2674] Added comments about how "module" #includes were
+	  originally generated.
+
+2006-04-06 18:00  leif
+
+	* [r2673] Removed extra directory level ("Source_code"); nuked
+	  "Shell_scripts".
+
+2006-04-04 01:26  leif
+
+	* [r2669] Cleaning.
+
+2006-04-04 01:20  leif
+
+	* [r2668] Added GNU build system.
+
+2006-04-03 19:06  walter
+
+	* [r2666] Add the shell scripts (whoops).
+
+2006-04-03 18:43  walter
+
+	* [r2665] Add the ellipsis3d code. Very rough, needs to be cleaned
+	  up, and probably hard to build.
+
+2006-04-03 18:39  walter
+
+	* [r2664] Add trunk to ellipsis3d.
+

@@ -1,0 +1,45 @@
+Regional (0) spacing of nodes in x direction
+Regional (0) spacing of nodes in z direction
+Regional (0) spacing of nodes in y direction
+Velocity_x bc information is in file 
+Unable to open the required file `'
+No Stress_x bc information found in input file
+No Velocity_z bc information found in input file
+No Stress_z bc information found in input file
+No Velocity_y bc information found in input file
+No Stress_y bc information found in input file
+RAA: finished the section concerning the general cases from the input template
+No Temperature bc information found in input file
+No Heat_flux_z bc information found in input file
+No previous temperature information found in input file
+Linear temperature gradient (0 -> 1)
+Adding in 0 perturbations to temperature field
+Allocate 10000 extra tracers to total 10000
+Allocate 10000 extra tracers to total 20000
+Allocated 16000 tracers in 128 elements
+Tracer merge/split: 0.068005 s 
+Tracer shape fns: 0.108007 s 
+Sorting by element of tracers: 0.108007 s 
+Computed local coords for tracers: 0.108007 s 
+Reweighing of tracers: 0.108007 s 
+Adjusted weights tracers: 0.112007 s 
+Reweighing etc of tracers took 0.120008 s 
+No previous plastic_strain information found in input file
+No previous velocity information found in input file
+No previous velocity information found in input file
+No previous velocity information found in input file
+No previous pressure information found in input file
+PPM: Plotting field 0 between 2.6 and 0 (6504 @ 1.275,0.175, 1 @ 0.025,0.025) 
+Plotting profile 0 between 10000 and 0
+Plotting profile 1 between 10000 and 0
+Plotting profile 2 between 10000 and 0
+Input parameters taken from file 'Examples/Ellipsis3D_2004_examples/two_layered_crustal_extension.input'
+Initialization complete after 0.16001 seconds
+
+Visc min = 1, Visc max = 1e+06
+18: Continuity Residual = 8.28739e-07 (relative) = 4.06331e-05
+Level 2 ---> delta u(0) = 0.948007 Continuity satisfied - Yes
+Visc min = 1, Visc max = 1e+06
+25: Continuity Residual = 1.3178e-06 (relative) = 2.98011e-05
+Level 2 ---> delta u(1) = 1.54261 Continuity satisfied - Yes
+Visc min = 1, Visc max = 185656

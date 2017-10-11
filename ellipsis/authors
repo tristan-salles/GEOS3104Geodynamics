@@ -1,0 +1,10 @@
+Ellipsis3d originated from CIItcom (CitCom version II), a multigrid
+mantle convection code developed by Louis Moresi. Subsequently, Chris
+Wijns contributed user-functionality and miscellaneous back end
+improvements.  Later extensions to include the Cosserat continuum
+theory were introduced by Frederic Dufour. The two-dimensional version
+of ellipsis was extended into three dimensions by Richard Albert and
+Craig O'Neill.
+
+Also see the file ChangeLog.
+

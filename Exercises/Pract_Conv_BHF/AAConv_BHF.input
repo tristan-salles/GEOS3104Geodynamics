@@ -1,0 +1,368 @@
+#################################################################
+# Mantle Convection                                             #
+# Isoviscous                                                    #
+# Rayleigh Number: 7.91e8                                       #
+# 10-2014                                                       #
+#################################################################
+
+__________________________________________________________________________________
+__________________________________________________________________________________
+
+## GRID & PARTICLE ISSUES ##
+__________________________________________________________________________________
+__________________________________________________________________________________
+
+    Geometry=cart2d 	# problem geometry
+
+# Cartesian
+	dimenx=6.0		# grid extents in arbitrary units (no default)
+	dimenz=1.0
+ 	dimeny=1.0
+
+# Multigrid solver 
+	Solver=multigrid	# multigrid or (later, conjugate gradient)
+	mgunitx=12		# (coarsest) multigrid cell dimensions (elements)
+	mgunitz=2		# (mgunitx/y/z default=min=2)
+	levels=4		# number of multigrid levels (default=1)
+	pmg_levels=3	# number of pressure multigrid levels (default=1)
+				    # p_levmin (used in multigrid) = levels - pmg_levels (>=1)
+                            
+
+# Tracer (particles)
+	Tracer_rect=1			# number of rectangular regions of different tracer densities (default=0)
+	Tracer_rect_density=8		# tracer density (N x N per finest element) (<=12)
+	Tracer_rect_x1=0		# coordinate extent of region
+	Tracer_rect_x2=6 	    
+	Tracer_rect_z1=0
+	Tracer_rect_z2=1
+	
+__________________________________________________________________________________
+__________________________________________________________________________________
+
+## MODEL GEOMETRY ##
+__________________________________________________________________________________
+__________________________________________________________________________________
+
+
+# Any combination of rectangular, triangular, and circular regions may
+# be specified. Initial conditions are specified as follows:
+#	class_shape_subclass=value
+# where class is one of Material, Temp, Strain
+#	shape is rect, circ, trgl
+#	subclass is e.g. mag(nitude),x1(coordinate), or sometimes empty
+#	value is a (comma-delimited list of) numerical assignment(s)
+# NOTE: Tracer regions are as yet only 2D.
+
+# Material distributions
+	Material_rect=1 					# number of rectangular regions with different tracer properties (default=0)
+	Material_rect_property=0,1	 	# tracer group name (properties/colour)
+	Material_rect_x1=0.0,0.0	# coordinates of tracer regions
+	Material_rect_z1=0.0,0.2
+	Material_rect_x2=6.0,3.6	# (successively overwritten if rectangles overlap)
+	Material_rect_z2=1.0,0.6
+        
+	Material_trgl=0        
+	Material_trgl_vert=3,3
+	Material_trgl_property=4,4 	# tracer group name (properties/colour)
+	Material_trgl_x1=1.6,1.63	# coordinates of tracer regions
+	Material_trgl_z1=0.2,0.2
+	Material_trgl_x2=2.0,2.0	# (successively overwritten if rectangles overlap)
+	Material_trgl_z2=0.6,0.6
+	Material_trgl_x3=1.97,1.6	# (successively overwritten if rectangles overlap)
+	Material_trgl_z3=0.6,0.2
+
+
+# Embedded Temperature and Strain anomalies
+	Temp_rect=0			# Number of rectangular temperature regions (default=0)
+	Temp_rect_x1=0.8		# coordinates of region
+	Temp_rect_x2=1.2
+	Temp_rect_z1=0.6
+	Temp_rect_z2=0.7
+	Temp_rect_hw=0.2		# half-width of smoothed edge
+	Temp_rect_mag=1.0		# magnitude of initial condition
+	Temp_rect_ovl=R			# A/M/R = add/multiply/replace overlaps
+							# (in increasing coord direction)
+							
+# Gravity, sea level, erosion & sedimentation
+	gravacc=1				# gravitational acceleration (default=9.81)
+	gravtheta=0.0				# counterclockwise degree angle between gravity vector and z axis (default=0.0)
+
+
+
+# Initial condition files
+#   Read in a file (ascii) containing nodal values of a field, in the form
+#	previous_name_file=string
+#     where `name' is the field and `string' is the data file name. Allowed fields are
+#     `temperature', `pressure', `velocity', `plastic_strain', `pore_pressure', `porosity'.
+#     The file should have the standard CITCOM output format:
+#       # HEADER LINES etc
+#       index X Z Y ... field_value1 ...
+#       index X Z Y ... field_value2 ...
+#     where index is the node number, X Z Y are the coordinates and the field value is in
+#     the column under the abbreviated header term `abbr' in the calling function argument:
+#	int read_previous_field(E,field,name,abbr)
+#     Abbreviations are `Temp',`Pres',`Velx/y/z',`Pstn',`PorP',`Poro'. If the number
+#     of nodes OR the xzy coordinates for the node number (to within a small tolerance)
+#     are not in agreement with the existing mesh, the data is interpolated. 
+	previous_temperature_file=""
+#   Read in a binary (XDR) file containing a particle configuration and properties.
+#	particle_input=""		# initial particle configuration (XDR binary)
+#	previous_particle_data=""	# initial particle properties to use
+					# possible keywords are the same as for the output
+					# from particle_data=""
+
+
+__________________________________________________________________________________
+__________________________________________________________________________________
+
+##  STEADY STATES AND BOUNDARY CONDITIONS ##
+__________________________________________________________________________________
+__________________________________________________________________________________
+
+
+# Boundary conditions are specified as follows:
+#	class_bc_shape_subclass=value
+# where class is one of Temp, Stress_x/z/y, Velocity_x/z/y, Heat_flux_x/z/y, PoreP, Pore_flux_x/z/y
+#	bc indicates a boundary condition
+#	shape is rect, circ, harm(onic), poly(nomial), interface
+#	subclass is e.g. mag(nitude),aa1(coordinate), or sometimes empty
+#	value is a (comma-delimited list of) numerical assignment(s)
+# Default conditions are tangential stress=0 and normal velocity=0 for all boundaries,
+#    T=toptbcval on top and T=bottbcval on bottom, heat flux=0 on sides,
+#    pore fluid flux=0 for all boundaries.
+# Note that Velocity, Temp, PoreP respectively override Stress, Heat_flux, and Pore_flux on
+#    coincident boundaries.
+
+# Temperature int. and bcs
+	Temp_bc_rect=1				# number of rectangular bc ranges (surfaces) (default=0)
+	Temp_bc_rect_norm=Z,Z		# normal to plane of surface
+	Temp_bc_rect_icpt=0,1		# normal-axis intercept of bc plane
+	Temp_bc_rect_aa1=0,0		# lateral coordinate extent in 1st dimension
+	Temp_bc_rect_aa2=6,6
+	Temp_bc_rect_hw=0,0			# half-width of bc smoothing edge
+	Temp_bc_rect_mag=0,1		# magnitude of bc
+
+# Heat flow int. and bcs       
+	Heat_flux_z_bc_rect=1				# number of rectangular bc ranges (surfaces) (default=0)
+	Heat_flux_z_bc_rect_norm=Z			# normal to plane of surface
+	Heat_flux_z_bc_rect_icpt=1			# normal-axis intercept of bc plane
+	Heat_flux_z_bc_rect_aa1=0			# lateral coordinate extent in 1st dimension
+	Heat_flux_z_bc_rect_aa2=6
+	Heat_flux_z_bc_rect_hw=0			# half-width of bc smoothing edge
+	Heat_flux_z_bc_rect_mag=1			# magnitude of bc
+        
+# Velocity int. and bcs	
+	Velocity_z_bc_rect=0		# number of rectangular bc ranges (surfaces) (default=0)
+	Velocity_z_bc_rect_norm=X	# normal to plane of surface
+	Velocity_z_bc_rect_icpt=2	# normal-axis intercept of bc plane
+	Velocity_z_bc_rect_aa1=0	# lateral coordinate extent in 1st dimension
+	Velocity_z_bc_rect_aa2=1
+	Velocity_z_bc_rect_hw=0.0	# half-width of bc smoothing edge
+	Velocity_z_bc_rect_mag=0.0	# magnitude of bc
+
+# Model margins		
+	periodicx=off		# wrap-around bc (2D only) (default=off)
+	periodic_rm_vx=off	# removes periodic bc up to a constant (default=off)
+	free_upper=on		# free upper surface (pseudo) (default=off)
+	free_lower=on		# free lower surface (pseudo) (default=off)
+	initial_isostasy=off	# set initial topography from stress-balance (default=off)
+
+# Boundary condition files
+#   Use the same CITCOM format as initial condition files (above). Read in a file (ascii)
+#   containing nodal bc values of a field, in the form
+#	field_bc_file=string
+#   Allowed fields are Temperature, Heat_flux_z, Velocity_x/z/y, and Stress_x/z/y.
+#   Abbreviations in the file header are Temp, Hflz, Velx/z/y, and Strx/z/y.
+#   Values from files are overwritten by above input file conditions.
+	Velocity_x_bc_file=""
+	
+# Moving grid BC
+ 	BCmoveX1v=0   	# Velocity Of Grid Origin Boundaries (Default=0.0)
+
+__________________________________________________________________________________
+__________________________________________________________________________________
+
+## MATERIAL PROPERTIES ##
+__________________________________________________________________________________
+__________________________________________________________________________________
+
+#   There must be at least one kind of material in the system and it will 
+# be material 0, other materials count upwards (material 0, material 1, ... ).
+# These properties are assigned to tracer groups according to
+#    Material_rect_property=0,1,2,... etc.
+
+	Different_materials=1	# Number of different materials listed
+	Tracers=on		# initialise tracers (default=on)
+	Tracer_appetite=0.5	# ( size(tracer1)+size(tracer2) ) * Tracer_appetite (default=0.5)
+	Tracer_voids=off	# allow tracers to disappear (default=off)
+	Grain_size_model=1	# (1) growth/nucleation (Jean's version) or (2) empirical
+				# applies to all materials (default=1)
+
+## Mantle
+	Material_0_density=1		# density (default=1.0)
+
+# Rheological model
+	Material_0_rheol_T_type=1	# rheological temperature-dependence model (default=2)
+					# (1) visc=N0*exp(-T1*T)		(Frank-Kamenetski)
+					#     where z=depth
+	Material_0_viscN0=1		# N0 in viscosity models (default=1.0) 100
+	Material_0_viscT1=0.0		# T1 in viscosity models (default=1.0) 0.003
+
+# Thermal parameters
+	Material_0_therm_exp=7.91e8	# thermal expansion coefficient also Rayleigh Number (default=0.0)
+	Material_0_therm_diff=1		# thermal diffusivity (default=0.0)
+	Material_0_Cp=1.0		# isobaric heat capacity (default=1.0)
+	Material_0_Qt=0.0	   	# internal heating rate by mass (default=0.0)
+
+
+# Colouring
+	Material_0_Red=0.7,0.7			# RGB values for "cold" material (list one per PPM file)
+ 	Material_0_Green=0.6,0.6			# ("hot" and "cold" are determined from T extremes)
+ 	Material_0_Blue=0.1,0.1
+ 	Material_0_Opacity=1.4,1.4			# opacity for "cold" material (negative=off)
+ 	Material_0_Red_hot=1.0,1.0		# values for "hot" material
+ 	Material_0_Green_hot=1.0,0,0
+ 	Material_0_Blue_hot=1.0,0,0
+ 	Material_0_Opacity_hot=1.4,1.4
+ 	Material_0_Red_strained=0.0,1.0		# values for strained material
+ 	Material_0_Green_strained=0.0,0.0
+ 	Material_0_Blue_strained=1.0,0.0
+ 	Material_0_Opacity_strained=1.4,0.4
+	
+__________________________________________________________________________________
+__________________________________________________________________________________
+
+## OUTPUT FILES ##
+__________________________________________________________________________________
+__________________________________________________________________________________
+
+	DESCRIBE=off		# describe search for parameters (default=off)
+	VERBOSE=on		# on the input values as they are read in (default=off)
+	BEGINNER=off		# verbose on missing input (if VERBOSE=on) (default=off)
+	verbose=on		# verbose behaviour for the code (debugging) (default=off)
+	see_convergence=0	# print progress of run for X timesteps (default=0=off)
+
+# ADVECTION-DIFFUSION PARAMETERS
+	minstep=1					# minimum number of adv-diff timesteps (default=1)
+	maxstep=800  		# maximum number of adv-diff time steps (default=1000)
+	fixed_timestep=0.0	# overridden if > calculated max (default=0.0=ignored)
+	maxadvtime=1.67e15		# maximum elapsed time (default=1.0e18=30 Byr)
+	Geometry=cart2d 	# problem geometry
+	Solver=multigrid	# multigrid or (later, conjugate gradient)
+		
+	
+# OUTPUT FILES
+
+	COMPRESS=off		# output files compressed upon creation (default=on)
+	datafile="ConvMod2"	# root name of output files
+	datatypes="Temp,Pres"		# desired nodal output variables (ascii file)
+				# possible keywords for datatypes:
+				# Velx, Vely, Velz = x, y, z velocity
+				# PoVx, PoVz = x, z pore liquid velocity
+				# Pres, PorP = (nodal) solid pressure, pore pressure
+				# Temp = temperature, Comp = compression
+				# Strf = stream function (2D cartesian coords only)
+				# Pbdy = phase boundary
+    particle_data=""	# desired particle output variables (binary file ... and large file ...)
+				# possible keywords for particle_data:
+				# Temp = temperature
+				# Pres, PorP = solid pressure, pore pressure
+				# Visc = viscosity
+				# Poro = porosity
+				# Edot = strain rate
+				# StrP, StrT = integrated plastic/total strain
+				# Grsz = grain size
+	averages="Temp,Visc"		# horizontally averaged values for output (ascii)
+				# possible keywords for averages:
+				# Temp = temperature
+				# Visc = viscosity
+				# Poro = porosity
+				# Velo = magnitude of velocity
+				# Urms, Vrms, Wrms = rms of x, z, y velocities
+	timelog="Shfl,Bhfl"	# time record of large-scale averages (ascii)
+				# possible keywords for timelog:
+				# Nuss = Nusselt number
+				# Shfl, Bhfl = average surface and basal heat fluxes
+	observables=""		# surface observables (slice at z=0/zmax) (ascii)
+				# possible keywords for observables:
+				# Shfl, Bhfl = surface and basal heat fluxes
+				# Vxsf, Vysf, Vzsf = surface velocities
+				# Grvx, Grbx, Grtx = surface, basal, and topographical gravity signals
+
+
+	storage_timesteps=50	# data writing interval (based on average timestep) (default=50)
+	checkpt_timesteps=50	# PPM (graphics) file writing interval (default=10)
+	storage_timing=47.25e-09	# absolute timestep data writing interval (default=0.0=ignore)
+	checkpt_timing=47.25e-09	# absolute timestep PPM file writing interval (default=0.0=ignore)
+	process_command=""	# system command to process upon each output write
+         
+# Specifications for graphical output files
+	PPM_files=1			# number of PPM files at each output step (default=1)
+					        # first PPM file is *.ppm0, etc.
+	PPM_height=256  		# vertical size of output PPM file (default=256)
+	PPM_coloring=1			# variable upon which to base colouring
+					# possible choices for PPM_coloring: (default=1)
+					# 1=temperature, 2=viscosity, 3=stress=visc*edot,
+					# 4=solid pressure, 5=grainsize, 6=compression,
+					# 7=strain rate, 8=accumulated strain
+	PPM_coloring_autorange=1	# automatically scale colour (default=1)
+	PPM_coloring_min=0.0	 	# min value for color scale (default=0.0)
+	PPM_coloring_max=1.0		# max value for color scale (default=1.0)
+	PPM_show_strain=0.5		# colour according to actual strength change (default=0.0)
+					# (as opposed to current strain rate) NB: if YIELD is on,
+					# one of these two is always shown, using "strained" colour.
+	        
+# for extracting profiles/histories
+	Sampling_tracers=20		# number of sampling tracers (default=0)
+	Sampling_lagrangian=0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0	# (fixed) Eulerian=0, Lagrangian=1 (default=0)
+	Sampling_plot_num=0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0	# PPM file in which profile is stored (default=0)
+	Sampling_x=1.0,1.25,1.5,1.75,2.0,2.25,2.5,2.75,3.0,3.25,3.5,3.75,4.0,4.25,4.5,4.75,5.0,5.25,5.5,5.75		# initial x location (default=0.0)
+	Sampling_z=0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0		# initial z location (default=0.0)
+	Sampling_y=0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0		# initial z location (default=0.0)
+	Sampling_field=1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4		# field to sample (default=0)
+                                                                        # 1=temperature, 2=x velocity, 3=z velocity
+                                                                        # 4=nodal pressure, 5=strain rate, 6=stress=visc*edot 14=depl
+	Sampling_dirn=2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2		# profile direction (1=x, 2=z, 3=y) (default=0)
+	Sampling_normalize=0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1	# 0=unnormalized, 1=normalized (default=0)
+	Sampling_plot_min=0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0		# If not autoranging, then need a max/min for the scale
+	Sampling_plot_max=1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0
+
+	Sampling_R=0.0,1.0,1.0,0.6,0.6,0.3,0.3,1.0,1.0,0.6,0.6,0.3,0.3,0.3,0.3,0.6,0.6,1.0,1.0,1.0	# RGB colour mixes for profiles (default=0.0)
+	Sampling_G=0.0,0.3,0.3,0.6,0.6,1.0,1.0,0.3,0.3,0.6,0.6,1.0,1.0,0.3,0.3,0.6,0.6,1.0,1.0,1.0
+	Sampling_B=0.0,0.3,0.3,0.6,0.6,1.0,1.0,1.0,1.0,0.6,0.6,0.3,0.3,0.3,0.3,0.6,0.6,1.0,1.0,1.0
+	
+__________________________________________________________________________________
+__________________________________________________________________________________
+
+## OVER-RIDING TOGGLES ##
+__________________________________________________________________________________
+__________________________________________________________________________________
+
+# Over-riding (toggle on & off)
+	TDEPV=off		# use temperature-dependent rheological parameters (default=on)
+				# (off is faster than turning all viscosity values to 1)
+	VMAX=off			# use maximum viscosity (default=off)
+	VMIN=off			# use minimum viscosity (default=off)
+	visc_max=100000		# maximum, minimum viscosity cut-offs (no defaults)
+	visc_min=0.01
+
+__________________________________________________________________________________
+__________________________________________________________________________________
+
+## SOLVER STUFF BETTER NOT PLAY WITH IT ##
+__________________________________________________________________________________
+__________________________________________________________________________________	
+
+# SOLVER RELATED MATTERS - FOR ADVANCED USERS ONLY
+# Defaults are sensible (exercise care in changing these)
+
+	mg_cycle=1						# style of multigrid cycle
+									# 1 = V cycle, 2 = W cycle, ... (default=1)
+	vel_relaxations=10				# maximum number of velocity loops (default=2)
+	piterations=100					# maximum Uzawa iteration loops (default=100)
+	viterations=20					# number of velocity iterations before checking convergence (default=251)
+	accuracy=1.e-4					# desired accuracy of Uzawa algorithm (default=1.e-4)
+	delta_accuracy_factor=1.0		# change in accuracy level->level (>~1 for nonN, <~1 for Newt)
+									# 0.001 < factor < 10.0 (default=0.2)
+	gs_under_relax=1.0				# Gauss-Seidel under-relaxation (default=1.0)
+

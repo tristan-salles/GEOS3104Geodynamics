@@ -1,0 +1,55 @@
+Topo_gravity.o Topo_gravity.o: Topo_gravity.c /usr/include/stdio.h \
+  /usr/include/sys/cdefs.h /usr/include/sys/_symbol_aliasing.h \
+  /usr/include/sys/_posix_availability.h /usr/include/Availability.h \
+  /usr/include/AvailabilityInternal.h /usr/include/_types.h \
+  /usr/include/sys/_types.h /usr/include/machine/_types.h \
+  /usr/include/i386/_types.h /usr/include/secure/_stdio.h \
+  /usr/include/secure/_common.h /usr/include/math.h element_definitions.h \
+  global_defs.h tracer_global_definitions.h \
+  chemtrans_global_definitions.h viscosity_descriptions.h \
+  temperature_descriptions.h advection_global_variables.h \
+  convection_global_variables.h tracer_global_variables.h
+
+/usr/include/stdio.h:
+
+/usr/include/sys/cdefs.h:
+
+/usr/include/sys/_symbol_aliasing.h:
+
+/usr/include/sys/_posix_availability.h:
+
+/usr/include/Availability.h:
+
+/usr/include/AvailabilityInternal.h:
+
+/usr/include/_types.h:
+
+/usr/include/sys/_types.h:
+
+/usr/include/machine/_types.h:
+
+/usr/include/i386/_types.h:
+
+/usr/include/secure/_stdio.h:
+
+/usr/include/secure/_common.h:
+
+/usr/include/math.h:
+
+element_definitions.h:
+
+global_defs.h:
+
+tracer_global_definitions.h:
+
+chemtrans_global_definitions.h:
+
+viscosity_descriptions.h:
+
+temperature_descriptions.h:
+
+advection_global_variables.h:
+
+convection_global_variables.h:
+
+tracer_global_variables.h:
